@@ -1,4 +1,4 @@
-import {Body, Controller, Param, Post, Res} from '@nestjs/common';
+import {Body, Controller, HttpCode, Param, Post, Res} from '@nestjs/common';
 import {AppService} from './app.service';
 
 @Controller('atom')
@@ -6,6 +6,7 @@ export class AppController {
     constructor(private readonly appService: AppService) {
     }
 
+    @HttpCode(200)
     @Post('sign')
     createSignedTransaction(
         @Body('toAddress') toAddress,
