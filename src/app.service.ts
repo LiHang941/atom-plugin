@@ -1,5 +1,5 @@
 import {Injectable} from '@nestjs/common';
-import {createSignedTransaction, signWithPrivateKey} from './cosmos-keys';
+import {createSignedTransaction, getNewWalletFromSeed} from './cosmos-keys';
 
 @Injectable()
 export class AppService {
@@ -33,6 +33,10 @@ export class AppService {
             memo: memo
         }, [sendMsg], privateKey, publicKey, 'cosmoshub-2', accountNumber, sequence);
         return JSON.stringify(signMessage);
+    }
+
+    getNewWalletFromSeed(seed): string {
+        return JSON.stringify(getNewWalletFromSeed(seed));
     }
 
 }

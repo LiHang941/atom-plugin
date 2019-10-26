@@ -1,8 +1,56 @@
 import * as secp256k1 from 'secp256k1';
 import * as CryptoJS from 'crypto-js';
-import {StdSignMsg} from './types';
+import * as bip39 from 'bip39';
+import * as bip32 from 'bip32';
+import * as bech32 from 'bech32';
+import {KeyPair, StdSignMsg, Wallet} from './types';
 
 const DEFAULT_GAS_PRICE = [{amount: (2.5e-8).toFixed(9), denom: `uatom`}];
+const hdPathAtom = `m/44'/118'/0'/0/0`;
+
+export function getNewWalletFromSeed(mnemonic: string): Wallet {
+    const masterKey = deriveMasterKey(mnemonic);
+    const {privateKey, publicKey} = deriveKeypair(masterKey);
+    const cosmosAddress = getCosmosAddress(publicKey);
+    return {
+        privateKey: privateKey.toString('hex'),
+        publicKey: publicKey.toString('hex'),
+        cosmosAddress
+    };
+}
+
+function deriveMasterKey(mnemonic: string): bip32.BIP32 {
+    // throws if mnemonic is invalid
+    bip39.validateMnemonic(mnemonic);
+
+    const seed = bip39.mnemonicToSeedSync(mnemonic);
+    const masterKey = bip32.fromSeed(seed);
+    return masterKey;
+}
+
+function deriveKeypair(masterKey: bip32.BIP32): KeyPair {
+    const cosmosHD = masterKey.derivePath(hdPathAtom);
+    const privateKey = cosmosHD.privateKey;
+    const publicKey = secp256k1.publicKeyCreate(privateKey, true);
+
+    return {
+        privateKey,
+        publicKey
+    };
+}
+
+export function getCosmosAddress(publicKey: Buffer): string {
+    const message = CryptoJS.enc.Hex.parse(publicKey.toString('hex'));
+    const address = CryptoJS.RIPEMD160(CryptoJS.SHA256(message) as any).toString();
+    const cosmosAddress = bech32ify(address, `cosmos`);
+
+    return cosmosAddress;
+}
+
+function bech32ify(address: string, prefix: string) {
+    const words = bech32.toWords(Buffer.from(address, 'hex'));
+    return bech32.encode(prefix, words);
+}
 
 // produces the signature for a message (returns Buffer)
 export function signWithPrivateKey(signMessage: StdSignMsg | string, privateKey: Buffer): Buffer {
@@ -12,14 +60,6 @@ export function signWithPrivateKey(signMessage: StdSignMsg | string, privateKey:
     const {signature} = secp256k1.sign(signHash, privateKey);
 
     return signature;
-}
-
-export function verifySignature(signMessage: StdSignMsg | string, signature: Buffer, publicKey: Buffer): boolean {
-    const signMessageString: string =
-        typeof signMessage === 'string' ? signMessage : JSON.stringify(signMessage);
-    const signHash = Buffer.from(CryptoJS.SHA256(signMessageString).toString(), `hex`);
-
-    return secp256k1.verify(signHash, signature, publicKey);
 }
 
 export function createSignMessage(jsonTx, {sequence, accountNumber, chainId}) {
