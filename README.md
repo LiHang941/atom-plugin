@@ -33,8 +33,9 @@ curl -X POST \
 ```
 curl -X POST \
  http://127.0.0.1:3000/atom/atom/sign \
-  -H 'Content-Type: application/x-www-form-urlencoded' \
-  -H 'Postman-Token: d543d327-1659-4af6-bad1-d6bd41a60726' \
-  -H 'cache-control: no-cache' \
   -d 'fromAddress=<发起者地址>&toAddress=<收款地址>&amount=<金额>&memo=<备注>&privateKey=<私钥>&publicKey=<公钥>&accountNumber=<账户number>&sequence=<账户seq>'
 ```
+
+## 说明
+只针对主网简单转账签名   
+有需求看源码更改
